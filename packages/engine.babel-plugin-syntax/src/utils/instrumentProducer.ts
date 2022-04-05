@@ -13,8 +13,11 @@ import {
   EngineKeywords,
   PassthroughOperation,
   OperationTypes,
+  ValueTypes,
+  UpdateValueMethods,
 } from "@c11/engine.types";
 import { PluginConfig, InstrumentationOutput } from "../types";
+import { Values } from "../parsers/valueParser";
 
 export const instrumentProducer = (
   babel: typeof Babel,
@@ -25,28 +28,73 @@ export const instrumentProducer = (
   const t = babel.types;
   const node = path.node;
 
-  if (!t.isArrowFunctionExpression(node.init)) {
+  if (
+    !(t.isCallExpression(node.init) || t.isArrowFunctionExpression(node.init))
+  ) {
     throw path.buildCodeFrameError(Messages.ARROW_FUNCTION_EXPECTED);
   }
 
-  const fn = node.init as Babel.types.ArrowFunctionExpression;
-  const param = fn.params[0];
-
-  if (param && !(t.isObjectPattern(param) || t.isIdentifier(param))) {
-    throw path.buildCodeFrameError(Messages.INVALID_FUNCTION_PARAM);
-  }
-
-  let props;
   let parsedParam;
-  if (t.isObjectPattern(param)) {
+  if (t.isCallExpression(node.init)) {
+    // short hand version
+    const value = node.init.callee;
+    if (!t.isMemberExpression(value)) {
+      throw path.buildCodeFrameError(Messages.ARROW_FUNCTION_EXPECTED);
+    }
+    const updateOp = Values.MemberExpression(babel, value);
+
+    if (!updateOp || updateOp.type !== OperationTypes.UPDATE) {
+      throw path.buildCodeFrameError(Messages.INVALID_SHORTHAND_PRODUCER);
+    }
+
+    const updateMethod = updateOp.path[updateOp.path.length - 1];
+    if (
+      updateMethod.type !== ValueTypes.CONST ||
+      !Object.values(UpdateValueMethods).includes(updateMethod.value)
+    ) {
+      throw path.buildCodeFrameError(Messages.INVALID_SHORTHAND_PRODUCER);
+    }
+
+    const args = node.init.arguments;
+    if (args.length < 1 || args.length > 2) {
+      throw path.buildCodeFrameError(Messages.INVALID_SHORTHAND_PRODUCER);
+    }
+
+    const fn = args[0];
+    const opParams = args[1];
+
+    if (!t.isArrowFunctionExpression(fn)) {
+      throw path.buildCodeFrameError(Messages.INVALID_SHORTHAND_PRODUCER);
+    }
+
+    if (opParams && !t.isObjectExpression(opParams)) {
+      throw path.buildCodeFrameError(Messages.INVALID_SHORTHAND_PRODUCER);
+    }
+
+    const param = fn.params;
     parsedParam = paramParser(babel, param);
-    fn.params = paramsCompiler(babel, parsedParam);
-    props = structOperationCompiler(babel, parsedParam);
-  } else {
-    parsedParam = {
-      type: OperationTypes.PASSTHROUGH,
-    } as PassthroughOperation;
-    props = passthroughOperationCompiler(babel);
+    console.log(JSON.stringify(parsedParam, null, " "));
+  } else if (t.isArrowFunctionExpression(node.init)) {
+    // extended version
+    const fn = node.init as Babel.types.ArrowFunctionExpression;
+    const param = fn.params[0];
+
+    if (param && !(t.isObjectPattern(param) || t.isIdentifier(param))) {
+      throw path.buildCodeFrameError(Messages.INVALID_FUNCTION_PARAM);
+    }
+
+    let props;
+    parsedParam;
+    if (t.isObjectPattern(param)) {
+      parsedParam = paramParser(babel, param);
+      fn.params = paramsCompiler(babel, parsedParam);
+      props = structOperationCompiler(babel, parsedParam);
+    } else {
+      parsedParam = {
+        type: OperationTypes.PASSTHROUGH,
+      } as PassthroughOperation;
+      props = passthroughOperationCompiler(babel);
+    }
   }
 
   const metaProps = extractMeta(babel, state, path);

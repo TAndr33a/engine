@@ -1,8 +1,7 @@
 import pluginTester from "babel-plugin-tester";
 import prettier from "prettier";
 import plugin from "../src";
-
-const config = require("./babelConfig.json");
+import config from "./babelConfig.json";
 
 pluginTester({
   plugin,

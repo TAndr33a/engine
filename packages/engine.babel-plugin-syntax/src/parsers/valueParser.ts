@@ -23,7 +23,7 @@ import { getMemberExpressionParams } from "../utils/getMemberExpressionParams";
 import { invokablePathValueParser } from "./invokablePathValueParser";
 import { structParser } from "./structParser";
 
-const constValue = (value: any): ValueOperation => {
+export const constValue = (value: any): ValueOperation => {
   return {
     type: OperationTypes.VALUE,
     value: {
@@ -33,7 +33,7 @@ const constValue = (value: any): ValueOperation => {
   };
 };
 
-const funcValue = (node: Node): FuncOperation => {
+export const funcValue = (node: Node): FuncOperation => {
   return {
     type: OperationTypes.FUNC,
     value: {
@@ -43,7 +43,7 @@ const funcValue = (node: Node): FuncOperation => {
   };
 };
 
-const logicalExpression = (
+export const logicalExpression = (
   babel: typeof Babel,
   node: LogicalExpression
 ): FuncOperation => {
@@ -87,7 +87,7 @@ interface Values {
   [key: string]: (babel: typeof Babel, node: any) => Operation | undefined;
 }
 
-const Values: Values = {
+export const Values: Values = {
   // foo = get.foo.bar
   MemberExpression: (babel, node) => {
     const params = getMemberExpressionParams(babel, node);

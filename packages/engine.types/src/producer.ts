@@ -174,15 +174,23 @@ export type Params<T> = {
   [k in keyof T]: string | number | Params<T[k]>;
 };
 
+export enum UpdateValueMethods {
+  SET = "set",
+  MERGE = "merge",
+  REMOVE = "remove",
+  PUSH = "push",
+  POP = "pop",
+}
+
 export type UpdateValue<T, P = {}> = {
-  set: (value: T, params?: Params<P>) => void;
-  merge: (value: Partial<T>, params?: Params<P>) => void;
-  remove: (params?: Params<P>) => void;
-  push: (
+  [UpdateValueMethods.SET]: (value: T, params?: Params<P>) => void;
+  [UpdateValueMethods.MERGE]: (value: Partial<T>, params?: Params<P>) => void;
+  [UpdateValueMethods.REMOVE]: (params?: Params<P>) => void;
+  [UpdateValueMethods.PUSH]: (
     value: T extends (infer R)[] ? R : unknown,
     params?: Params<P>
   ) => void;
-  pop: (params?: Params<P>) => void;
+  [UpdateValueMethods.POP]: (params?: Params<P>) => void;
 };
 
 export type GetValue<T, P = {}> = {

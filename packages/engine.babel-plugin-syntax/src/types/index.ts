@@ -11,7 +11,7 @@ export type InstrumentationOutput = {
   sourceId: string;
   buildId: string;
   meta: ProducerMeta;
-  params: PassthroughOperation | StructOperation;
+  params?: PassthroughOperation | StructOperation;
 };
 
 export type PluginConfig = {
